@@ -138,44 +138,9 @@ if st.session_state.editing:
     st.markdown("## ✏️ Edit Itinerary")
 
     selected_day = st.selectbox(
-        "Where do you want to add or edit?",
+        "Where do you want to add something?",
         list(st.session_state.itinerary.keys())
     )
-
-    st.markdown(f"### Editing {selected_day}")
-
-    updated_events = []
-
-    for i, item in enumerate(st.session_state.itinerary[selected_day]):
-        col1, col2, col3 = st.columns([2, 4, 1])
-
-        with col1:
-            new_time = st.text_input(
-                "Time",
-                value=item["time"],
-                key=f"time_{selected_day}_{i}"
-            )
-
-        with col2:
-            new_event = st.text_input(
-                "Event",
-                value=item["event"],
-                key=f"event_{selected_day}_{i}"
-            )
-
-        with col3:
-            delete = st.checkbox(
-                "Delete",
-                key=f"delete_{selected_day}_{i}"
-            )
-
-        if not delete:
-            updated_events.append({
-                "time": new_time,
-                "event": new_event
-            })
-
-    st.session_state.itinerary[selected_day] = updated_events
 
     st.markdown("### Add something new")
 
@@ -193,7 +158,56 @@ if st.session_state.editing:
         else:
             st.warning("Add both a time and event.")
 
+    st.divider()
+
+    st.markdown("### Change something already listed")
+    st.warning("Only use this if you really want to edit or delete an existing item.")
+
+    confirm_edit = st.checkbox(
+        "Yes, I am sure I want to edit something that is already on the itinerary."
+    )
+
+    if confirm_edit:
+        edit_day = st.selectbox(
+            "Which day do you want to edit?",
+            list(st.session_state.itinerary.keys()),
+            key="edit_existing_day"
+        )
+
+        updated_events = []
+
+        for i, item in enumerate(st.session_state.itinerary[edit_day]):
+            col1, col2, col3 = st.columns([2, 4, 1])
+
+            with col1:
+                new_time_existing = st.text_input(
+                    "Time",
+                    value=item["time"],
+                    key=f"time_existing_{edit_day}_{i}"
+                )
+
+            with col2:
+                new_event_existing = st.text_input(
+                    "Event",
+                    value=item["event"],
+                    key=f"event_existing_{edit_day}_{i}"
+                )
+
+            with col3:
+                delete_existing = st.checkbox(
+                    "Delete",
+                    key=f"delete_existing_{edit_day}_{i}"
+                )
+
+            if not delete_existing:
+                updated_events.append({
+                    "time": new_time_existing,
+                    "event": new_event_existing
+                })
+
+        st.session_state.itinerary[edit_day] = updated_events
+
     if st.button("💾 Save Changes"):
         save_itinerary(st.session_state.itinerary)
-        st.success("Saved to the screen 🩷")
+        st.success("Saved 🩷")
         st.rerun()
