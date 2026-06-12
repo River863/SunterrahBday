@@ -1,14 +1,32 @@
 {
   "Friday": [
-    "🎪 Cirque du Soleil",
-    "🍽️ Birthday Dinner"
+    {
+      "time": "6:00 PM",
+      "event": "🎪 Cirque du Soleil"
+    },
+    {
+      "time": "9:00 PM",
+      "event": "🍽️ Birthday Dinner"
+    }
   ],
   "Saturday": [
-    "☀️ Cabana Day Party",
-    "🎧 DJ Mustard Party"
+    {
+      "time": "12:00 PM",
+      "event": "☀️ Cabana Day Party"
+    },
+    {
+      "time": "10:00 PM",
+      "event": "🎧 DJ Mustard Party"
+    }
   ],
   "Sunday": [
-    "🥂 Brunch at Play Playground",
-    "🌴 Sunday Funday (TBA)"
+    {
+      "time": "11:00 AM",
+      "event": "🥂 Brunch at Play Playground"
+    },
+    {
+      "time": "3:00 PM",
+      "event": "🌴 Sunday Funday"
+    }
   ]
 }
