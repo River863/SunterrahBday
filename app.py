@@ -2,76 +2,130 @@ import json
 import streamlit as st
 
 st.set_page_config(
-    page_title="Birthday Weekend",
+    page_title="Sunterrah's 30th Birthday",
     page_icon="🎀",
     layout="centered"
 )
 
-# Pink styling
 st.markdown("""
 <style>
 .stApp {
     background: linear-gradient(180deg, #fff5f8, #ffe4ec);
+    overflow: hidden;
 }
-.day-card {
-    background: white;
-    padding: 20px;
-    border-radius: 20px;
-    margin-bottom: 15px;
-    border: 2px solid #ffc2d6;
-}
+
 .title {
     text-align: center;
     color: #ff4f9a;
-    font-size: 3rem;
+    font-size: 2.7rem;
+    font-weight: bold;
+}
+
+.subtitle {
+    text-align: center;
+    color: #b83273;
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+}
+
+.day-card {
+    background: rgba(255, 255, 255, 0.92);
+    padding: 22px;
+    border-radius: 24px;
+    margin-bottom: 18px;
+    border: 2px solid #ffc2d6;
+    box-shadow: 0 8px 20px rgba(255, 79, 154, 0.15);
+}
+
+.event-card {
+    background: #fff5f9;
+    padding: 14px;
+    border-radius: 16px;
+    margin: 10px 0;
+    border-left: 6px solid #ff69b4;
+}
+
+.time {
+    font-weight: bold;
+    color: #ff4f9a;
+}
+
+.event {
+    font-size: 1.05rem;
+    color: #5a1f3c;
+}
+
+.glitter {
+    position: fixed;
+    top: -10px;
+    animation: fall linear infinite;
+    color: #ff69b4;
+    font-size: 18px;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+@keyframes fall {
+    to {
+        transform: translateY(110vh) rotate(360deg);
+    }
 }
 </style>
+
+<div class="glitter" style="left:5%; animation-duration:6s;">✨</div>
+<div class="glitter" style="left:15%; animation-duration:8s;">💖</div>
+<div class="glitter" style="left:25%; animation-duration:7s;">✨</div>
+<div class="glitter" style="left:40%; animation-duration:9s;">🎀</div>
+<div class="glitter" style="left:55%; animation-duration:6.5s;">✨</div>
+<div class="glitter" style="left:70%; animation-duration:8.5s;">💗</div>
+<div class="glitter" style="left:85%; animation-duration:7.5s;">✨</div>
+<div class="glitter" style="left:95%; animation-duration:9.5s;">💖</div>
 """, unsafe_allow_html=True)
 
-# Load itinerary
-with open("itinerary.json", "r") as f:
-    itinerary = json.load(f)
+def load_itinerary():
+    with open("itinerary.json", "r") as f:
+        return json.load(f)
 
-# Session state
+def save_itinerary(data):
+    with open("itinerary.json", "w") as f:
+        json.dump(data, f, indent=2)
+
+if "itinerary" not in st.session_state:
+    st.session_state.itinerary = load_itinerary()
+
 if "editing" not in st.session_state:
     st.session_state.editing = False
 
-# Header
 st.markdown(
-    "<h1 class='title'>🎀 Birthday Weekend 🎀</h1>",
+    "<h1 class='title'>🎀 Sunterrah's 30th Birthday 🎀</h1>",
     unsafe_allow_html=True
 )
 
 st.markdown(
-    "<p style='text-align:center;'>Celebrate the Birthday Girl 🩷</p>",
+    "<p class='subtitle'>A cute birthday weekend itinerary 🩷✨</p>",
     unsafe_allow_html=True
 )
 
-# View mode
-for day, events in itinerary.items():
-    st.markdown(
-        f"<div class='day-card'><h3>🩷 {day}</h3>",
-        unsafe_allow_html=True
-    )
+# Show itinerary
+for day, events in st.session_state.itinerary.items():
+    st.markdown(f"<div class='day-card'><h2>🩷 {day}</h2>", unsafe_allow_html=True)
 
-    if st.session_state.editing:
-        for i, event in enumerate(events):
-            itinerary[day][i] = st.text_input(
-                f"{day}-{i}",
-                value=event
-            )
-    else:
-        for event in events:
-            st.write(event)
+    for item in events:
+        st.markdown(
+            f"""
+            <div class='event-card'>
+                <div class='time'>{item['time']}</div>
+                <div class='event'>{item['event']}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Hidden-ish edit section
+# Secret edit area
 with st.expander("✨ Secret Sister Code ✨"):
-    password = st.text_input(
-        "Enter passcode",
-        type="password"
-    )
+    password = st.text_input("Enter passcode", type="password")
 
     if st.button("Unlock Editing"):
         if password == st.secrets["edit_password"]:
@@ -80,9 +134,66 @@ with st.expander("✨ Secret Sister Code ✨"):
         else:
             st.error("Incorrect passcode")
 
-# Save button
 if st.session_state.editing:
+    st.markdown("## ✏️ Edit Itinerary")
+
+    selected_day = st.selectbox(
+        "Where do you want to add or edit?",
+        list(st.session_state.itinerary.keys())
+    )
+
+    st.markdown(f"### Editing {selected_day}")
+
+    updated_events = []
+
+    for i, item in enumerate(st.session_state.itinerary[selected_day]):
+        col1, col2, col3 = st.columns([2, 4, 1])
+
+        with col1:
+            new_time = st.text_input(
+                "Time",
+                value=item["time"],
+                key=f"time_{selected_day}_{i}"
+            )
+
+        with col2:
+            new_event = st.text_input(
+                "Event",
+                value=item["event"],
+                key=f"event_{selected_day}_{i}"
+            )
+
+        with col3:
+            delete = st.checkbox(
+                "Delete",
+                key=f"delete_{selected_day}_{i}"
+            )
+
+        if not delete:
+            updated_events.append({
+                "time": new_time,
+                "event": new_event
+            })
+
+    st.session_state.itinerary[selected_day] = updated_events
+
+    st.markdown("### Add something new")
+
+    new_time = st.text_input("New time", placeholder="Example: 7:00 PM")
+    new_event = st.text_input("New event", placeholder="Example: 🎂 Cake and champagne")
+
+    if st.button("➕ Add to Day"):
+        if new_time and new_event:
+            st.session_state.itinerary[selected_day].append({
+                "time": new_time,
+                "event": new_event
+            })
+            st.success("Added! You can see it on the page now 🩷")
+            st.rerun()
+        else:
+            st.warning("Add both a time and event.")
+
     if st.button("💾 Save Changes"):
-        with open("itinerary.json", "w") as f:
-            json.dump(itinerary, f, indent=2)
-        st.success("Saved!")
+        save_itinerary(st.session_state.itinerary)
+        st.success("Saved to the screen 🩷")
+        st.rerun()
