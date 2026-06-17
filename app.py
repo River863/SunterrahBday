@@ -194,7 +194,10 @@ st.markdown(
 )
 
 
-for day, details in st.session_state.itinerary.items():
+day_order = ["Friday", "Saturday", "Sunday"]
+
+for day in day_order:
+    details = st.session_state.itinerary[day]
     st.markdown(
         f"""
         <div class='day-card'>
