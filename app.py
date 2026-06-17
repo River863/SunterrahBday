@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 import streamlit as st
 
 st.set_page_config(
@@ -11,32 +12,27 @@ st.markdown("""
 <style>
 .stApp {
     background: linear-gradient(180deg, #fff5f8, #ffe4ec);
-    overflow: hidden;
 }
-
 .title {
     text-align: center;
     color: #ff4f9a;
     font-size: 2.7rem;
     font-weight: bold;
 }
-
 .subtitle {
     text-align: center;
     color: #b83273;
     font-size: 1.2rem;
     margin-bottom: 30px;
 }
-
 .day-card {
-    background: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.95);
     padding: 22px;
     border-radius: 24px;
     margin-bottom: 18px;
     border: 2px solid #ffc2d6;
     box-shadow: 0 8px 20px rgba(255, 79, 154, 0.15);
 }
-
 .event-card {
     background: #fff5f9;
     padding: 14px;
@@ -44,17 +40,14 @@ st.markdown("""
     margin: 10px 0;
     border-left: 6px solid #ff69b4;
 }
-
 .time {
     font-weight: bold;
     color: #ff4f9a;
 }
-
 .event {
     font-size: 1.05rem;
     color: #5a1f3c;
 }
-
 .glitter {
     position: fixed;
     top: -10px;
@@ -64,7 +57,6 @@ st.markdown("""
     z-index: 9999;
     pointer-events: none;
 }
-
 @keyframes fall {
     to {
         transform: translateY(110vh) rotate(360deg);
@@ -82,19 +74,36 @@ st.markdown("""
 <div class="glitter" style="left:95%; animation-duration:9.5s;">💖</div>
 """, unsafe_allow_html=True)
 
+
 def load_itinerary():
     with open("itinerary.json", "r") as f:
         return json.load(f)
+
 
 def save_itinerary(data):
     with open("itinerary.json", "w") as f:
         json.dump(data, f, indent=2)
 
+
+def time_sort_value(item):
+    try:
+        return datetime.strptime(item["time"], "%I:%M %p")
+    except:
+        return datetime.max
+
+
+def sort_itinerary(data):
+    for day in data:
+        data[day] = sorted(data[day], key=time_sort_value)
+    return data
+
+
 if "itinerary" not in st.session_state:
-    st.session_state.itinerary = load_itinerary()
+    st.session_state.itinerary = sort_itinerary(load_itinerary())
 
 if "editing" not in st.session_state:
     st.session_state.editing = False
+
 
 st.markdown(
     "<h1 class='title'>🎀 Sunterrah's 30th Birthday 🎀</h1>",
@@ -106,7 +115,8 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Show itinerary
+
+# Display itinerary
 for day, events in st.session_state.itinerary.items():
     st.markdown(f"<div class='day-card'><h2>🩷 {day}</h2>", unsafe_allow_html=True)
 
@@ -123,7 +133,8 @@ for day, events in st.session_state.itinerary.items():
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Secret edit area
+
+# Secret edit login
 with st.expander("✨ Secret Sister Code ✨"):
     password = st.text_input("Enter passcode", type="password")
 
@@ -134,80 +145,99 @@ with st.expander("✨ Secret Sister Code ✨"):
         else:
             st.error("Incorrect passcode")
 
+
 if st.session_state.editing:
-    st.markdown("## ✏️ Edit Itinerary")
+    st.markdown("## ✨ Add to the Itinerary")
 
-    selected_day = st.selectbox(
-        "Where do you want to add something?",
-        list(st.session_state.itinerary.keys())
-    )
+    st.info("Choose a day, pick a time, type the event, then click add. The schedule will sort itself automatically.")
 
-    st.markdown("### Add something new")
+    with st.form("add_event_form", clear_on_submit=True):
+        add_day = st.selectbox(
+            "What day is this for?",
+            list(st.session_state.itinerary.keys())
+        )
 
-    new_time = st.text_input("New time", placeholder="Example: 7:00 PM")
-    new_event = st.text_input("New event", placeholder="Example: 🎂 Cake and champagne")
+        col1, col2 = st.columns(2)
 
-    if st.button("➕ Add to Day"):
-        if new_time and new_event:
-            st.session_state.itinerary[selected_day].append({
-                "time": new_time,
-                "event": new_event
-            })
-            st.success("Added! You can see it on the page now 🩷")
-            st.rerun()
-        else:
-            st.warning("Add both a time and event.")
+        with col1:
+            add_time = st.time_input("What time?")
+
+        with col2:
+            am_pm = st.selectbox("AM or PM?", ["AM", "PM"])
+
+        add_event = st.text_input(
+            "What is happening?",
+            placeholder="Example: 🎂 Birthday cake and champagne"
+        )
+
+        submitted = st.form_submit_button("➕ Add Event")
+
+        if submitted:
+            if add_event:
+                formatted_time = add_time.strftime("%I:%M") + f" {am_pm}"
+
+                st.session_state.itinerary[add_day].append({
+                    "time": formatted_time,
+                    "event": add_event
+                })
+
+                st.session_state.itinerary = sort_itinerary(st.session_state.itinerary)
+                save_itinerary(st.session_state.itinerary)
+
+                st.success("Added and saved 🩷")
+                st.rerun()
+            else:
+                st.warning("Please type the event first.")
 
     st.divider()
 
-    st.markdown("### Change something already listed")
-    st.warning("Only use this if you really want to edit or delete an existing item.")
-
+    st.markdown("## ⚠️ Edit or Delete Existing Plans")
     confirm_edit = st.checkbox(
-        "Yes, I am sure I want to edit something that is already on the itinerary."
+        "Yes, I am sure I want to edit or delete something already on the itinerary."
     )
 
     if confirm_edit:
         edit_day = st.selectbox(
             "Which day do you want to edit?",
             list(st.session_state.itinerary.keys()),
-            key="edit_existing_day"
+            key="edit_day"
         )
 
         updated_events = []
 
         for i, item in enumerate(st.session_state.itinerary[edit_day]):
-            col1, col2, col3 = st.columns([2, 4, 1])
+            st.markdown(f"### Item {i + 1}")
+
+            col1, col2 = st.columns([2, 4])
 
             with col1:
-                new_time_existing = st.text_input(
+                new_time = st.text_input(
                     "Time",
                     value=item["time"],
-                    key=f"time_existing_{edit_day}_{i}"
+                    key=f"time_{edit_day}_{i}"
                 )
 
             with col2:
-                new_event_existing = st.text_input(
+                new_event = st.text_input(
                     "Event",
                     value=item["event"],
-                    key=f"event_existing_{edit_day}_{i}"
+                    key=f"event_{edit_day}_{i}"
                 )
 
-            with col3:
-                delete_existing = st.checkbox(
-                    "Delete",
-                    key=f"delete_existing_{edit_day}_{i}"
-                )
+            delete = st.checkbox(
+                "Delete this item",
+                key=f"delete_{edit_day}_{i}"
+            )
 
-            if not delete_existing:
+            if not delete:
                 updated_events.append({
-                    "time": new_time_existing,
-                    "event": new_event_existing
+                    "time": new_time,
+                    "event": new_event
                 })
 
-        st.session_state.itinerary[edit_day] = updated_events
-
-    if st.button("💾 Save Changes"):
-        save_itinerary(st.session_state.itinerary)
-        st.success("Saved 🩷")
-        st.rerun()
+        if st.button("💾 Save Edits"):
+            st.session_state.itinerary[edit_day] = updated_events
+            st.session_state.itinerary = sort_itinerary(st.session_state.itinerary)
+            save_itinerary(st.session_state.itinerary)
+            st.success("Edits saved 🩷")
+            st.rerun()
