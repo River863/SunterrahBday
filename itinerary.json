@@ -1,32 +1,49 @@
 {
-  "Friday": [
-    {
-      "time": "6:00 PM",
-      "event": "🎪 Cirque du Soleil"
-    },
-    {
-      "time": "9:00 PM",
-      "event": "🍽️ Birthday Dinner"
-    }
-  ],
-  "Saturday": [
-    {
-      "time": "12:00 PM",
-      "event": "☀️ Cabana Day Party"
-    },
-    {
-      "time": "10:00 PM",
-      "event": "🎧 DJ Mustard Party"
-    }
-  ],
-  "Sunday": [
-    {
-      "time": "11:00 AM",
-      "event": "🥂 Brunch at Play Playground"
-    },
-    {
-      "time": "3:00 PM",
-      "event": "🌴 Sunday Funday"
-    }
-  ]
+"Friday": {
+"theme": "✨ Arrival Day",
+"dress_code": "Cute Vegas Night Out",
+"description": "The girls have officially arrived in Vegas. Check in, settle in, grab cocktails, and kick off the birthday weekend. Tonight is all about excitement, catching up, taking pictures, and getting into celebration mode before the big events begin.",
+"events": [
+{
+"time": "6:00 PM",
+"event": "🎪 Cirque du Soleil"
+},
+{
+"time": "9:00 PM",
+"event": "🍽️ Birthday Dinner"
+}
+]
+},
+
+"Saturday": {
+"theme": "🖤 Mourning the End of Youth",
+"dress_code": "Black Attire Required",
+"description": "This is the final full day before Sunterrah turns 30. We gather in black to honor the last moments of her twenties. The mood is dramatic, glamorous, and slightly unhinged—in the best way possible. Expect photos, laughter, dancing, and a proper send-off for an unforgettable decade.",
+"events": [
+{
+"time": "12:00 PM",
+"event": "☀️ Cabana Day Party"
+},
+{
+"time": "10:00 PM",
+"event": "🎧 DJ Mustard Party"
+}
+]
+},
+
+"Sunday": {
+"theme": "🎀 Thirty, Flirty & Thriving",
+"dress_code": "Pink Required",
+"description": "The mourning period has ended and the celebration begins. Today's energy is bright, feminine, confident, and joyful. Wear pink, bring your best energy, and help welcome Sunterrah into her thirties in style.",
+"events": [
+{
+"time": "11:00 AM",
+"event": "🥂 Brunch at Play Playground"
+},
+{
+"time": "3:00 PM",
+"event": "🌴 Sunday Funday"
+}
+]
+}
 }
