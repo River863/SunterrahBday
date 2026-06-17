@@ -1,6 +1,7 @@
 import base64
 from datetime import datetime
 import streamlit as st
+import streamlit.components.v1 as components
 from supabase import create_client
 
 st.set_page_config(
@@ -33,6 +34,7 @@ st.markdown("""
     background: linear-gradient(180deg, #fff5f8, #ffe4ec) !important;
     color: #4a1230 !important;
 }
+
 .title {
     text-align: center;
     font-size: 2.7rem;
@@ -43,17 +45,20 @@ st.markdown("""
     -webkit-text-fill-color: transparent;
     animation: shimmer 3s infinite linear;
 }
+
 .subtitle {
     text-align: center;
     color: #c2185b !important;
     font-size: 1.2rem;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
+
 .day-title {
     color: #ff1493 !important;
     text-shadow: 0 0 8px rgba(255, 105, 180, 0.45);
     font-weight: 800;
 }
+
 .day-card {
     background: rgba(255,255,255,0.98);
     padding: 22px;
@@ -62,6 +67,7 @@ st.markdown("""
     border: 2px solid #ff9ecb;
     box-shadow: 0 8px 22px rgba(255, 20, 147, 0.18);
 }
+
 .theme-box {
     background: #fff0f7;
     padding: 14px;
@@ -69,19 +75,23 @@ st.markdown("""
     margin-bottom: 14px;
     border: 1px dashed #ff69b4;
 }
+
 .theme {
     font-weight: bold;
     color: #ff1493 !important;
     font-size: 1.15rem;
 }
+
 .dress-code {
     font-weight: bold;
     color: #c2185b !important;
 }
+
 .description {
     color: #4a1230 !important;
     line-height: 1.5;
 }
+
 .event-card {
     background: #fff7fb;
     padding: 14px;
@@ -89,14 +99,17 @@ st.markdown("""
     margin: 10px 0;
     border-left: 6px solid #ff1493;
 }
+
 .time {
     font-weight: bold;
     color: #ff1493 !important;
 }
+
 .event {
     font-size: 1.05rem;
     color: #4a1230 !important;
 }
+
 .glitter {
     position: fixed;
     top: -10px;
@@ -105,21 +118,20 @@ st.markdown("""
     z-index: 9999;
     pointer-events: none;
 }
+
 @keyframes fall {
     to { transform: translateY(110vh) rotate(360deg); }
 }
+
 @keyframes bounce {
     0% { transform: translateY(0px); }
     50% { transform: translateY(-12px); }
     100% { transform: translateY(0px); }
 }
+
 @keyframes shimmer {
     0% { background-position: 0%; }
     100% { background-position: 300%; }
-}
-.print-button {
-    text-align: center;
-    margin: 20px 0;
 }
 
 @media print {
@@ -130,10 +142,12 @@ st.markdown("""
     .stCheckbox,
     .stForm,
     .glitter,
+    iframe,
     [data-testid="stSidebar"],
     [data-testid="stToolbar"],
     [data-testid="stDecoration"],
-    [data-testid="stStatusWidget"] {
+    [data-testid="stStatusWidget"],
+    [data-testid="stHeader"] {
         display: none !important;
     }
 
@@ -228,10 +242,11 @@ st.markdown(
     "<p class='subtitle'>A cute birthday weekend itinerary 🩷✨</p>",
     unsafe_allow_html=True
 )
-st.markdown(
+
+components.html(
     """
-    <div class="print-button">
-        <button onclick="window.print()" style="
+    <div style="text-align:center; margin: 10px 0 25px 0;">
+        <button onclick="window.parent.print()" style="
             background:#ff1493;
             color:white;
             border:none;
@@ -246,13 +261,17 @@ st.markdown(
         </button>
     </div>
     """,
-    unsafe_allow_html=True
+    height=70
 )
 
 day_order = ["Friday", "Saturday", "Sunday"]
 
 for day in day_order:
+    if day not in st.session_state.itinerary:
+        continue
+
     details = st.session_state.itinerary[day]
+
     st.markdown(
         f"""
         <div class='day-card'>
@@ -302,7 +321,7 @@ if st.session_state.editing:
     with st.form("add_event_form", clear_on_submit=True):
         add_day = st.selectbox(
             "What day is this for?",
-            list(st.session_state.itinerary.keys())
+            day_order
         )
 
         add_time = st.time_input("What time?")
@@ -336,7 +355,7 @@ if st.session_state.editing:
 
     details_day = st.selectbox(
         "Which day do you want to update?",
-        list(st.session_state.itinerary.keys()),
+        day_order,
         key="details_day"
     )
 
@@ -377,7 +396,7 @@ if st.session_state.editing:
     if confirm_edit:
         edit_day = st.selectbox(
             "Which day do you want to edit?",
-            list(st.session_state.itinerary.keys()),
+            day_order,
             key="edit_day"
         )
 
