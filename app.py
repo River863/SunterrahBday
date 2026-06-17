@@ -1,4 +1,5 @@
 import json
+import base64
 from datetime import datetime
 import streamlit as st
 
@@ -9,6 +10,18 @@ st.set_page_config(
 )
 
 IMAGE_FILE = "secret_puppy.png.gif"
+
+
+def gif_to_html(path, width=150):
+    with open(path, "rb") as file:
+        encoded = base64.b64encode(file.read()).decode()
+
+    return f"""
+    <div style="text-align:center;">
+        <img src="data:image/gif;base64,{encoded}" width="{width}" style="animation:bounce 1.5s infinite; cursor:pointer;">
+    </div>
+    """
+
 
 st.markdown("""
 <style>
@@ -61,10 +74,6 @@ st.markdown("""
     to {
         transform: translateY(110vh) rotate(360deg);
     }
-}
-.puppy-img {
-    animation: bounce 1.5s infinite;
-    text-align: center;
 }
 @keyframes bounce {
     0% { transform: translateY(0px); }
@@ -145,24 +154,18 @@ for day, events in st.session_state.itinerary.items():
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-st.markdown("### 🐾 Secret Birthday Planner")
+st.markdown(gif_to_html(IMAGE_FILE, width=150), unsafe_allow_html=True)
 
-st.markdown("<div class='puppy-img'>", unsafe_allow_html=True)
-st.image(IMAGE_FILE, width=150)
-st.markdown("</div>", unsafe_allow_html=True)
-
-st.caption("Give the birthday puppy a bone to unlock editing.")
-
-if st.button("Give Puppy a Bone 🦴"):
+if st.button("🐾"):
     st.session_state.show_password = True
 
 if st.session_state.show_password:
-    password = st.text_input("Enter secret passcode", type="password")
+    password = st.text_input("Enter passcode", type="password")
 
-    if st.button("Unlock Planner"):
+    if st.button("Unlock"):
         if password == st.secrets["edit_password"]:
             st.session_state.editing = True
-            st.success("Planner unlocked 🩷")
+            st.success("Unlocked 🩷")
         else:
             st.error("Incorrect passcode 🐾")
 
