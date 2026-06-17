@@ -26,62 +26,110 @@ def gif_to_html(path, width=150):
 st.markdown("""
 <style>
 .stApp {
-    background: linear-gradient(180deg, #fff5f8, #ffe4ec);
+    background: linear-gradient(180deg, #fff5f8, #ffe4ec) !important;
+    color: #4a1230 !important;
 }
+
+/* Main title shimmer */
 .title {
     text-align: center;
-    color: #ff4f9a;
     font-size: 2.7rem;
     font-weight: bold;
+    background: linear-gradient(90deg, #ff1493, #ff69b4, #ffb6d9, #ff1493);
+    background-size: 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3s infinite linear;
 }
+
+/* Subtitle */
 .subtitle {
     text-align: center;
-    color: #b83273;
+    color: #c2185b !important;
     font-size: 1.2rem;
     margin-bottom: 30px;
 }
+
+/* Friday / Saturday / Sunday */
+.day-title {
+    color: #ff1493 !important;
+    text-shadow: 0 0 8px rgba(255, 105, 180, 0.45);
+    font-weight: 800;
+}
+
+/* Cards */
 .day-card {
-    background: rgba(255,255,255,0.95);
+    background: rgba(255,255,255,0.98);
     padding: 22px;
     border-radius: 24px;
     margin-bottom: 18px;
-    border: 2px solid #ffc2d6;
+    border: 2px solid #ff9ecb;
+    box-shadow: 0 8px 22px rgba(255, 20, 147, 0.18);
 }
+
 .theme-box {
-    background: #fff0f6;
+    background: #fff0f7;
     padding: 14px;
     border-radius: 16px;
     margin-bottom: 14px;
-    border: 1px dashed #ff8fbd;
+    border: 1px dashed #ff69b4;
 }
+
 .theme {
     font-weight: bold;
-    color: #ff4f9a;
+    color: #ff1493 !important;
     font-size: 1.15rem;
+    text-shadow: 0 0 6px rgba(255, 105, 180, 0.35);
 }
+
 .dress-code {
     font-weight: bold;
-    color: #5a1f3c;
+    color: #c2185b !important;
 }
+
 .description {
-    color: #5a1f3c;
+    color: #4a1230 !important;
     line-height: 1.5;
 }
+
 .event-card {
-    background: #fff5f9;
+    background: #fff7fb;
     padding: 14px;
     border-radius: 16px;
     margin: 10px 0;
-    border-left: 6px solid #ff69b4;
+    border-left: 6px solid #ff1493;
 }
+
 .time {
     font-weight: bold;
-    color: #ff4f9a;
+    color: #ff1493 !important;
 }
+
 .event {
     font-size: 1.05rem;
-    color: #5a1f3c;
+    color: #4a1230 !important;
 }
+
+/* Force Streamlit dark mode text inside custom areas to stay readable */
+.day-card h1,
+.day-card h2,
+.day-card h3,
+.day-card p,
+.day-card div,
+.theme-box h1,
+.theme-box h2,
+.theme-box h3,
+.theme-box p,
+.theme-box div,
+.event-card h1,
+.event-card h2,
+.event-card h3,
+.event-card p,
+.event-card div {
+    color: inherit;
+}
+
+/* Glitter */
 .glitter {
     position: fixed;
     top: -10px;
@@ -90,15 +138,22 @@ st.markdown("""
     z-index: 9999;
     pointer-events: none;
 }
+
 @keyframes fall {
     to {
         transform: translateY(110vh) rotate(360deg);
     }
 }
+
 @keyframes bounce {
     0% { transform: translateY(0px); }
     50% { transform: translateY(-12px); }
     100% { transform: translateY(0px); }
+}
+
+@keyframes shimmer {
+    0% { background-position: 0%; }
+    100% { background-position: 300%; }
 }
 </style>
 
@@ -158,15 +213,15 @@ st.markdown(
 
 
 for day, details in st.session_state.itinerary.items():
-    st.markdown(f"<div class='day-card'><h2>🩷 {day}</h2>", unsafe_allow_html=True)
-
     st.markdown(
         f"""
-        <div class='theme-box'>
-            <div class='theme'>{details['theme']}</div>
-            <div class='dress-code'>Dress Code: {details['dress_code']}</div>
-            <p class='description'>{details['description']}</p>
-        </div>
+        <div class='day-card'>
+            <h2 class='day-title'>🩷 {day}</h2>
+            <div class='theme-box'>
+                <div class='theme'>{details['theme']}</div>
+                <div class='dress-code'>Dress Code: {details['dress_code']}</div>
+                <p class='description'>{details['description']}</p>
+            </div>
         """,
         unsafe_allow_html=True
     )
