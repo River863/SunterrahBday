@@ -1,7 +1,7 @@
-import json
 import base64
 from datetime import datetime
 import streamlit as st
+from supabase import create_client
 
 st.set_page_config(
     page_title="Sunterrah's 30th Birthday",
@@ -11,11 +11,15 @@ st.set_page_config(
 
 IMAGE_FILE = "secret_puppy.png.gif"
 
+supabase = create_client(
+    st.secrets["SUPABASE_URL"],
+    st.secrets["SUPABASE_KEY"]
+)
+
 
 def gif_to_html(path, width=150):
     with open(path, "rb") as file:
         encoded = base64.b64encode(file.read()).decode()
-
     return f"""
     <div style="text-align:center;">
         <img src="data:image/gif;base64,{encoded}" width="{width}" style="animation:bounce 1.5s infinite; cursor:pointer;">
@@ -29,8 +33,6 @@ st.markdown("""
     background: linear-gradient(180deg, #fff5f8, #ffe4ec) !important;
     color: #4a1230 !important;
 }
-
-/* Main title shimmer */
 .title {
     text-align: center;
     font-size: 2.7rem;
@@ -41,23 +43,17 @@ st.markdown("""
     -webkit-text-fill-color: transparent;
     animation: shimmer 3s infinite linear;
 }
-
-/* Subtitle */
 .subtitle {
     text-align: center;
     color: #c2185b !important;
     font-size: 1.2rem;
     margin-bottom: 30px;
 }
-
-/* Friday / Saturday / Sunday */
 .day-title {
     color: #ff1493 !important;
     text-shadow: 0 0 8px rgba(255, 105, 180, 0.45);
     font-weight: 800;
 }
-
-/* Cards */
 .day-card {
     background: rgba(255,255,255,0.98);
     padding: 22px;
@@ -66,7 +62,6 @@ st.markdown("""
     border: 2px solid #ff9ecb;
     box-shadow: 0 8px 22px rgba(255, 20, 147, 0.18);
 }
-
 .theme-box {
     background: #fff0f7;
     padding: 14px;
@@ -74,24 +69,19 @@ st.markdown("""
     margin-bottom: 14px;
     border: 1px dashed #ff69b4;
 }
-
 .theme {
     font-weight: bold;
     color: #ff1493 !important;
     font-size: 1.15rem;
-    text-shadow: 0 0 6px rgba(255, 105, 180, 0.35);
 }
-
 .dress-code {
     font-weight: bold;
     color: #c2185b !important;
 }
-
 .description {
     color: #4a1230 !important;
     line-height: 1.5;
 }
-
 .event-card {
     background: #fff7fb;
     padding: 14px;
@@ -99,37 +89,14 @@ st.markdown("""
     margin: 10px 0;
     border-left: 6px solid #ff1493;
 }
-
 .time {
     font-weight: bold;
     color: #ff1493 !important;
 }
-
 .event {
     font-size: 1.05rem;
     color: #4a1230 !important;
 }
-
-/* Force Streamlit dark mode text inside custom areas to stay readable */
-.day-card h1,
-.day-card h2,
-.day-card h3,
-.day-card p,
-.day-card div,
-.theme-box h1,
-.theme-box h2,
-.theme-box h3,
-.theme-box p,
-.theme-box div,
-.event-card h1,
-.event-card h2,
-.event-card h3,
-.event-card p,
-.event-card div {
-    color: inherit;
-}
-
-/* Glitter */
 .glitter {
     position: fixed;
     top: -10px;
@@ -138,19 +105,14 @@ st.markdown("""
     z-index: 9999;
     pointer-events: none;
 }
-
 @keyframes fall {
-    to {
-        transform: translateY(110vh) rotate(360deg);
-    }
+    to { transform: translateY(110vh) rotate(360deg); }
 }
-
 @keyframes bounce {
     0% { transform: translateY(0px); }
     50% { transform: translateY(-12px); }
     100% { transform: translateY(0px); }
 }
-
 @keyframes shimmer {
     0% { background-position: 0%; }
     100% { background-position: 300%; }
@@ -168,16 +130,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-def load_itinerary():
-    with open("itinerary.json", "r") as f:
-        return json.load(f)
-
-
-def save_itinerary(data):
-    with open("itinerary.json", "w") as f:
-        json.dump(data, f, indent=2)
-
-
 def time_sort_value(item):
     try:
         return datetime.strptime(item["time"], "%I:%M %p")
@@ -185,14 +137,44 @@ def time_sort_value(item):
         return datetime.max
 
 
-def sort_itinerary(data):
-    for day in data:
-        data[day]["events"] = sorted(data[day]["events"], key=time_sort_value)
-    return data
+def load_itinerary():
+    details_response = supabase.table("day_details").select("*").execute()
+    events_response = supabase.table("events").select("*").execute()
+
+    itinerary = {}
+
+    for row in details_response.data:
+        itinerary[row["day"]] = {
+            "theme": row["theme"],
+            "dress_code": row["dress_code"],
+            "description": row["description"],
+            "events": []
+        }
+
+    for row in events_response.data:
+        day = row["day"]
+        if day in itinerary:
+            itinerary[day]["events"].append({
+                "id": row["id"],
+                "time": row["time"],
+                "event": row["event"]
+            })
+
+    for day in itinerary:
+        itinerary[day]["events"] = sorted(
+            itinerary[day]["events"],
+            key=time_sort_value
+        )
+
+    return itinerary
+
+
+def refresh_itinerary():
+    st.session_state.itinerary = load_itinerary()
 
 
 if "itinerary" not in st.session_state:
-    st.session_state.itinerary = sort_itinerary(load_itinerary())
+    refresh_itinerary()
 
 if "editing" not in st.session_state:
     st.session_state.editing = False
@@ -278,15 +260,14 @@ if st.session_state.editing:
             if add_event:
                 formatted_time = add_time.strftime("%I:%M %p")
 
-                st.session_state.itinerary[add_day]["events"].append({
+                supabase.table("events").insert({
+                    "day": add_day,
                     "time": formatted_time,
                     "event": add_event
-                })
+                }).execute()
 
-                st.session_state.itinerary = sort_itinerary(st.session_state.itinerary)
-                save_itinerary(st.session_state.itinerary)
-
-                st.success("Added and saved 🩷")
+                refresh_itinerary()
+                st.success("Added and saved permanently 🩷")
                 st.rerun()
             else:
                 st.warning("Please type the event first.")
@@ -301,24 +282,30 @@ if st.session_state.editing:
         key="details_day"
     )
 
-    st.session_state.itinerary[details_day]["theme"] = st.text_input(
+    new_theme = st.text_input(
         "Theme",
         value=st.session_state.itinerary[details_day]["theme"]
     )
 
-    st.session_state.itinerary[details_day]["dress_code"] = st.text_input(
+    new_dress_code = st.text_input(
         "Dress Code",
         value=st.session_state.itinerary[details_day]["dress_code"]
     )
 
-    st.session_state.itinerary[details_day]["description"] = st.text_area(
+    new_description = st.text_area(
         "Vibe / Description",
         value=st.session_state.itinerary[details_day]["description"]
     )
 
     if st.button("💾 Save Day Text"):
-        save_itinerary(st.session_state.itinerary)
-        st.success("Day text saved 🩷")
+        supabase.table("day_details").update({
+            "theme": new_theme,
+            "dress_code": new_dress_code,
+            "description": new_description
+        }).eq("day", details_day).execute()
+
+        refresh_itinerary()
+        st.success("Day text saved permanently 🩷")
         st.rerun()
 
     st.divider()
@@ -336,8 +323,6 @@ if st.session_state.editing:
             key="edit_day"
         )
 
-        updated_events = []
-
         for i, item in enumerate(st.session_state.itinerary[edit_day]["events"]):
             st.markdown(f"### Item {i + 1}")
 
@@ -353,20 +338,23 @@ if st.session_state.editing:
                 key=f"event_{edit_day}_{i}"
             )
 
-            delete = st.checkbox(
-                "Delete this item",
-                key=f"delete_{edit_day}_{i}"
-            )
+            col1, col2 = st.columns(2)
 
-            if not delete:
-                updated_events.append({
-                    "time": new_time,
-                    "event": new_event
-                })
+            with col1:
+                if st.button("💾 Save This Item", key=f"save_{edit_day}_{i}"):
+                    supabase.table("events").update({
+                        "time": new_time,
+                        "event": new_event
+                    }).eq("id", item["id"]).execute()
 
-        if st.button("💾 Save Edits"):
-            st.session_state.itinerary[edit_day]["events"] = updated_events
-            st.session_state.itinerary = sort_itinerary(st.session_state.itinerary)
-            save_itinerary(st.session_state.itinerary)
-            st.success("Saved 🩷")
-            st.rerun()
+                    refresh_itinerary()
+                    st.success("Item saved permanently 🩷")
+                    st.rerun()
+
+            with col2:
+                if st.button("🗑️ Delete This Item", key=f"delete_{edit_day}_{i}"):
+                    supabase.table("events").delete().eq("id", item["id"]).execute()
+
+                    refresh_itinerary()
+                    st.success("Item deleted 🩷")
+                    st.rerun()
