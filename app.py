@@ -47,6 +47,26 @@ st.markdown("""
     margin-bottom: 18px;
     border: 2px solid #ffc2d6;
 }
+.theme-box {
+    background: #fff0f6;
+    padding: 14px;
+    border-radius: 16px;
+    margin-bottom: 14px;
+    border: 1px dashed #ff8fbd;
+}
+.theme {
+    font-weight: bold;
+    color: #ff4f9a;
+    font-size: 1.15rem;
+}
+.dress-code {
+    font-weight: bold;
+    color: #5a1f3c;
+}
+.description {
+    color: #5a1f3c;
+    line-height: 1.5;
+}
 .event-card {
     background: #fff5f9;
     padding: 14px;
@@ -112,7 +132,7 @@ def time_sort_value(item):
 
 def sort_itinerary(data):
     for day in data:
-        data[day] = sorted(data[day], key=time_sort_value)
+        data[day]["events"] = sorted(data[day]["events"], key=time_sort_value)
     return data
 
 
@@ -137,10 +157,21 @@ st.markdown(
 )
 
 
-for day, events in st.session_state.itinerary.items():
+for day, details in st.session_state.itinerary.items():
     st.markdown(f"<div class='day-card'><h2>🩷 {day}</h2>", unsafe_allow_html=True)
 
-    for item in events:
+    st.markdown(
+        f"""
+        <div class='theme-box'>
+            <div class='theme'>{details['theme']}</div>
+            <div class='dress-code'>Dress Code: {details['dress_code']}</div>
+            <p class='description'>{details['description']}</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    for item in details["events"]:
         st.markdown(
             f"""
             <div class='event-card'>
@@ -192,7 +223,7 @@ if st.session_state.editing:
             if add_event:
                 formatted_time = add_time.strftime("%I:%M %p")
 
-                st.session_state.itinerary[add_day].append({
+                st.session_state.itinerary[add_day]["events"].append({
                     "time": formatted_time,
                     "event": add_event
                 })
@@ -204,6 +235,36 @@ if st.session_state.editing:
                 st.rerun()
             else:
                 st.warning("Please type the event first.")
+
+    st.divider()
+
+    st.markdown("## 📝 Edit Day Theme, Dress Code, and Vibe")
+
+    details_day = st.selectbox(
+        "Which day do you want to update?",
+        list(st.session_state.itinerary.keys()),
+        key="details_day"
+    )
+
+    st.session_state.itinerary[details_day]["theme"] = st.text_input(
+        "Theme",
+        value=st.session_state.itinerary[details_day]["theme"]
+    )
+
+    st.session_state.itinerary[details_day]["dress_code"] = st.text_input(
+        "Dress Code",
+        value=st.session_state.itinerary[details_day]["dress_code"]
+    )
+
+    st.session_state.itinerary[details_day]["description"] = st.text_area(
+        "Vibe / Description",
+        value=st.session_state.itinerary[details_day]["description"]
+    )
+
+    if st.button("💾 Save Day Text"):
+        save_itinerary(st.session_state.itinerary)
+        st.success("Day text saved 🩷")
+        st.rerun()
 
     st.divider()
 
@@ -222,7 +283,7 @@ if st.session_state.editing:
 
         updated_events = []
 
-        for i, item in enumerate(st.session_state.itinerary[edit_day]):
+        for i, item in enumerate(st.session_state.itinerary[edit_day]["events"]):
             st.markdown(f"### Item {i + 1}")
 
             new_time = st.text_input(
@@ -249,7 +310,7 @@ if st.session_state.editing:
                 })
 
         if st.button("💾 Save Edits"):
-            st.session_state.itinerary[edit_day] = updated_events
+            st.session_state.itinerary[edit_day]["events"] = updated_events
             st.session_state.itinerary = sort_itinerary(st.session_state.itinerary)
             save_itinerary(st.session_state.itinerary)
             st.success("Saved 🩷")
