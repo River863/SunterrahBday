@@ -8,6 +8,8 @@ st.set_page_config(
     layout="centered"
 )
 
+IMAGE_FILE = "secret_puppy.png.gif"
+
 st.markdown("""
 <style>
 .stApp {
@@ -26,12 +28,11 @@ st.markdown("""
     margin-bottom: 30px;
 }
 .day-card {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255,255,255,0.95);
     padding: 22px;
     border-radius: 24px;
     margin-bottom: 18px;
     border: 2px solid #ffc2d6;
-    box-shadow: 0 8px 20px rgba(255, 79, 154, 0.15);
 }
 .event-card {
     background: #fff5f9;
@@ -52,7 +53,6 @@ st.markdown("""
     position: fixed;
     top: -10px;
     animation: fall linear infinite;
-    color: #ff69b4;
     font-size: 18px;
     z-index: 9999;
     pointer-events: none;
@@ -61,6 +61,15 @@ st.markdown("""
     to {
         transform: translateY(110vh) rotate(360deg);
     }
+}
+.puppy-img {
+    animation: bounce 1.5s infinite;
+    text-align: center;
+}
+@keyframes bounce {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-12px); }
+    100% { transform: translateY(0px); }
 }
 </style>
 
@@ -104,6 +113,9 @@ if "itinerary" not in st.session_state:
 if "editing" not in st.session_state:
     st.session_state.editing = False
 
+if "show_password" not in st.session_state:
+    st.session_state.show_password = False
+
 
 st.markdown(
     "<h1 class='title'>🎀 Sunterrah's 30th Birthday 🎀</h1>",
@@ -116,7 +128,6 @@ st.markdown(
 )
 
 
-# Display itinerary
 for day, events in st.session_state.itinerary.items():
     st.markdown(f"<div class='day-card'><h2>🩷 {day}</h2>", unsafe_allow_html=True)
 
@@ -134,22 +145,30 @@ for day, events in st.session_state.itinerary.items():
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# Secret edit login
-with st.expander("✨ Secret Sister Code ✨"):
-    password = st.text_input("Enter passcode", type="password")
+st.markdown("### 🐾 Secret Birthday Planner")
 
-    if st.button("Unlock Editing"):
+st.markdown("<div class='puppy-img'>", unsafe_allow_html=True)
+st.image(IMAGE_FILE, width=150)
+st.markdown("</div>", unsafe_allow_html=True)
+
+st.caption("Give the birthday puppy a bone to unlock editing.")
+
+if st.button("Give Puppy a Bone 🦴"):
+    st.session_state.show_password = True
+
+if st.session_state.show_password:
+    password = st.text_input("Enter secret passcode", type="password")
+
+    if st.button("Unlock Planner"):
         if password == st.secrets["edit_password"]:
             st.session_state.editing = True
-            st.success("Editing unlocked 🩷")
+            st.success("Planner unlocked 🩷")
         else:
-            st.error("Incorrect passcode")
+            st.error("Incorrect passcode 🐾")
 
 
 if st.session_state.editing:
     st.markdown("## ✨ Add to the Itinerary")
-
-    st.info("Choose a day, pick a time, type the event, then click add. The schedule will sort itself automatically.")
 
     with st.form("add_event_form", clear_on_submit=True):
         add_day = st.selectbox(
@@ -157,13 +176,7 @@ if st.session_state.editing:
             list(st.session_state.itinerary.keys())
         )
 
-        col1, col2 = st.columns(2)
-
-        with col1:
-            add_time = st.time_input("What time?")
-
-        with col2:
-            am_pm = st.selectbox("AM or PM?", ["AM", "PM"])
+        add_time = st.time_input("What time?")
 
         add_event = st.text_input(
             "What is happening?",
@@ -174,7 +187,7 @@ if st.session_state.editing:
 
         if submitted:
             if add_event:
-                formatted_time = add_time.strftime("%I:%M") + f" {am_pm}"
+                formatted_time = add_time.strftime("%I:%M %p")
 
                 st.session_state.itinerary[add_day].append({
                     "time": formatted_time,
@@ -192,6 +205,7 @@ if st.session_state.editing:
     st.divider()
 
     st.markdown("## ⚠️ Edit or Delete Existing Plans")
+
     confirm_edit = st.checkbox(
         "Yes, I am sure I want to edit or delete something already on the itinerary."
     )
@@ -208,21 +222,17 @@ if st.session_state.editing:
         for i, item in enumerate(st.session_state.itinerary[edit_day]):
             st.markdown(f"### Item {i + 1}")
 
-            col1, col2 = st.columns([2, 4])
+            new_time = st.text_input(
+                "Time",
+                value=item["time"],
+                key=f"time_{edit_day}_{i}"
+            )
 
-            with col1:
-                new_time = st.text_input(
-                    "Time",
-                    value=item["time"],
-                    key=f"time_{edit_day}_{i}"
-                )
-
-            with col2:
-                new_event = st.text_input(
-                    "Event",
-                    value=item["event"],
-                    key=f"event_{edit_day}_{i}"
-                )
+            new_event = st.text_input(
+                "Event",
+                value=item["event"],
+                key=f"event_{edit_day}_{i}"
+            )
 
             delete = st.checkbox(
                 "Delete this item",
@@ -239,5 +249,5 @@ if st.session_state.editing:
             st.session_state.itinerary[edit_day] = updated_events
             st.session_state.itinerary = sort_itinerary(st.session_state.itinerary)
             save_itinerary(st.session_state.itinerary)
-            st.success("Edits saved 🩷")
+            st.success("Saved 🩷")
             st.rerun()
