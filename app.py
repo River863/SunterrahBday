@@ -34,7 +34,6 @@ st.markdown("""
     background: linear-gradient(180deg, #fff5f8, #ffe4ec) !important;
     color: #4a1230 !important;
 }
-
 .title {
     text-align: center;
     font-size: 2.7rem;
@@ -45,20 +44,17 @@ st.markdown("""
     -webkit-text-fill-color: transparent;
     animation: shimmer 3s infinite linear;
 }
-
 .subtitle {
     text-align: center;
     color: #c2185b !important;
     font-size: 1.2rem;
     margin-bottom: 20px;
 }
-
 .day-title {
     color: #ff1493 !important;
     text-shadow: 0 0 8px rgba(255, 105, 180, 0.45);
     font-weight: 800;
 }
-
 .day-card {
     background: rgba(255,255,255,0.98);
     padding: 22px;
@@ -67,7 +63,6 @@ st.markdown("""
     border: 2px solid #ff9ecb;
     box-shadow: 0 8px 22px rgba(255, 20, 147, 0.18);
 }
-
 .theme-box {
     background: #fff0f7;
     padding: 14px;
@@ -75,23 +70,19 @@ st.markdown("""
     margin-bottom: 14px;
     border: 1px dashed #ff69b4;
 }
-
 .theme {
     font-weight: bold;
     color: #ff1493 !important;
     font-size: 1.15rem;
 }
-
 .dress-code {
     font-weight: bold;
     color: #c2185b !important;
 }
-
 .description {
     color: #4a1230 !important;
     line-height: 1.5;
 }
-
 .event-card {
     background: #fff7fb;
     padding: 14px;
@@ -99,17 +90,14 @@ st.markdown("""
     margin: 10px 0;
     border-left: 6px solid #ff1493;
 }
-
 .time {
     font-weight: bold;
     color: #ff1493 !important;
 }
-
 .event {
     font-size: 1.05rem;
     color: #4a1230 !important;
 }
-
 .glitter {
     position: fixed;
     top: -10px;
@@ -118,22 +106,18 @@ st.markdown("""
     z-index: 9999;
     pointer-events: none;
 }
-
 @keyframes fall {
     to { transform: translateY(110vh) rotate(360deg); }
 }
-
 @keyframes bounce {
     0% { transform: translateY(0px); }
     50% { transform: translateY(-12px); }
     100% { transform: translateY(0px); }
 }
-
 @keyframes shimmer {
     0% { background-position: 0%; }
     100% { background-position: 300%; }
 }
-
 @media print {
     .stButton,
     .stTextInput,
@@ -150,17 +134,14 @@ st.markdown("""
     [data-testid="stHeader"] {
         display: none !important;
     }
-
     .stApp {
         background: white !important;
     }
-
     .day-card {
         page-break-inside: avoid;
         box-shadow: none !important;
         border: 2px solid #ff9ecb !important;
     }
-
     .title {
         -webkit-text-fill-color: #ff1493 !important;
         color: #ff1493 !important;
@@ -223,6 +204,18 @@ def refresh_itinerary():
     st.session_state.itinerary = load_itinerary()
 
 
+def event_exists(day, time, event):
+    existing = (
+        supabase.table("events")
+        .select("*")
+        .eq("day", day)
+        .eq("time", time)
+        .eq("event", event)
+        .execute()
+    )
+    return len(existing.data) > 0
+
+
 if "itinerary" not in st.session_state:
     refresh_itinerary()
 
@@ -231,6 +224,9 @@ if "editing" not in st.session_state:
 
 if "show_password" not in st.session_state:
     st.session_state.show_password = False
+
+if "message" not in st.session_state:
+    st.session_state.message = None
 
 
 st.markdown(
@@ -242,6 +238,10 @@ st.markdown(
     "<p class='subtitle'>A cute birthday weekend itinerary 🩷✨</p>",
     unsafe_allow_html=True
 )
+
+if st.session_state.message:
+    st.success(st.session_state.message)
+    st.session_state.message = None
 
 components.html(
     """
@@ -310,7 +310,8 @@ if st.session_state.show_password:
     if st.button("Unlock"):
         if password == st.secrets["edit_password"]:
             st.session_state.editing = True
-            st.success("Unlocked 🩷")
+            st.session_state.message = "Unlocked 🩷"
+            st.rerun()
         else:
             st.error("Incorrect passcode 🐾")
 
@@ -337,15 +338,18 @@ if st.session_state.editing:
             if add_event:
                 formatted_time = add_time.strftime("%I:%M %p")
 
-                supabase.table("events").insert({
-                    "day": add_day,
-                    "time": formatted_time,
-                    "event": add_event
-                }).execute()
+                if event_exists(add_day, formatted_time, add_event):
+                    st.warning("This exact event is already on the itinerary.")
+                else:
+                    supabase.table("events").insert({
+                        "day": add_day,
+                        "time": formatted_time,
+                        "event": add_event
+                    }).execute()
 
-                refresh_itinerary()
-                st.success("Added and saved permanently 🩷")
-                st.rerun()
+                    refresh_itinerary()
+                    st.session_state.message = "Added and saved permanently 🩷"
+                    st.rerun()
             else:
                 st.warning("Please type the event first.")
 
@@ -382,7 +386,7 @@ if st.session_state.editing:
         }).eq("day", details_day).execute()
 
         refresh_itinerary()
-        st.success("Day text saved permanently 🩷")
+        st.session_state.message = "Day text saved permanently 🩷"
         st.rerun()
 
     st.divider()
@@ -425,7 +429,7 @@ if st.session_state.editing:
                     }).eq("id", item["id"]).execute()
 
                     refresh_itinerary()
-                    st.success("Item saved permanently 🩷")
+                    st.session_state.message = "Item saved permanently 🩷"
                     st.rerun()
 
             with col2:
@@ -433,5 +437,5 @@ if st.session_state.editing:
                     supabase.table("events").delete().eq("id", item["id"]).execute()
 
                     refresh_itinerary()
-                    st.success("Item deleted 🩷")
+                    st.session_state.message = "Item deleted permanently 🩷"
                     st.rerun()
