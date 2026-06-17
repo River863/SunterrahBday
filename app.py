@@ -117,6 +117,42 @@ st.markdown("""
     0% { background-position: 0%; }
     100% { background-position: 300%; }
 }
+.print-button {
+    text-align: center;
+    margin: 20px 0;
+}
+
+@media print {
+    .stButton,
+    .stTextInput,
+    .stTextArea,
+    .stSelectbox,
+    .stCheckbox,
+    .stForm,
+    .glitter,
+    [data-testid="stSidebar"],
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"],
+    [data-testid="stStatusWidget"] {
+        display: none !important;
+    }
+
+    .stApp {
+        background: white !important;
+    }
+
+    .day-card {
+        page-break-inside: avoid;
+        box-shadow: none !important;
+        border: 2px solid #ff9ecb !important;
+    }
+
+    .title {
+        -webkit-text-fill-color: #ff1493 !important;
+        color: #ff1493 !important;
+        background: none !important;
+    }
+}
 </style>
 
 <div class="glitter" style="left:5%; animation-duration:6s;">✨</div>
@@ -192,7 +228,26 @@ st.markdown(
     "<p class='subtitle'>A cute birthday weekend itinerary 🩷✨</p>",
     unsafe_allow_html=True
 )
-
+st.markdown(
+    """
+    <div class="print-button">
+        <button onclick="window.print()" style="
+            background:#ff1493;
+            color:white;
+            border:none;
+            padding:12px 22px;
+            border-radius:999px;
+            font-weight:bold;
+            font-size:16px;
+            cursor:pointer;
+            box-shadow:0 6px 14px rgba(255,20,147,0.25);
+        ">
+            🖨️ Print / Save as PDF
+        </button>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 day_order = ["Friday", "Saturday", "Sunday"]
 
