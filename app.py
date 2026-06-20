@@ -1,8 +1,12 @@
 import base64
+import re
 from datetime import datetime
+
 import streamlit as st
 import streamlit.components.v1 as components
 from supabase import create_client
+from pypdf import PdfReader
+
 
 st.set_page_config(
     page_title="Sunterrah's 30th Birthday",
@@ -118,6 +122,36 @@ st.markdown("""
     0% { background-position: 0%; }
     100% { background-position: 300%; }
 }
+@media print {
+    .stButton,
+    .stTextInput,
+    .stTextArea,
+    .stSelectbox,
+    .stCheckbox,
+    .stForm,
+    .glitter,
+    iframe,
+    [data-testid="stSidebar"],
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"],
+    [data-testid="stStatusWidget"],
+    [data-testid="stHeader"] {
+        display: none !important;
+    }
+    .stApp {
+        background: white !important;
+    }
+    .day-card {
+        page-break-inside: avoid;
+        box-shadow: none !important;
+        border: 2px solid #ff9ecb !important;
+    }
+    .title {
+        -webkit-text-fill-color: #ff1493 !important;
+        color: #ff1493 !important;
+        background: none !important;
+    }
+}
 </style>
 
 <div class="glitter" style="left:5%; animation-duration:6s;">✨</div>
@@ -172,6 +206,83 @@ def load_itinerary():
 
 def refresh_itinerary():
     st.session_state.itinerary = load_itinerary()
+
+
+def parse_pdf_itinerary(uploaded_pdf):
+    reader = PdfReader(uploaded_pdf)
+    text = ""
+
+    for page in reader.pages:
+        page_text = page.extract_text()
+        if page_text:
+            text += page_text + "\n"
+
+    days = ["Friday", "Saturday", "Sunday"]
+    parsed = {}
+
+    for i, day in enumerate(days):
+        start = text.find(day)
+        if start == -1:
+            continue
+
+        end = len(text)
+
+        for next_day in days[i + 1:]:
+            next_start = text.find(next_day)
+            if next_start != -1:
+                end = next_start
+                break
+
+        block = text[start:end].strip().splitlines()
+
+        if len(block) < 3:
+            continue
+
+        theme = ""
+        dress_code = ""
+        description_lines = []
+        events = []
+
+        for line in block[1:]:
+            line = line.strip()
+
+            if not line:
+                continue
+
+            if line.startswith("Dress Code:"):
+                dress_code = line.replace("Dress Code:", "").strip()
+
+            elif line.startswith("-"):
+                clean = line.replace("-", "", 1).strip()
+
+                match = re.match(r"(.+?)\s+-\s+(.+)", clean)
+
+                if match:
+                    time = match.group(1).strip()
+                    event = match.group(2).strip()
+                else:
+                    time = "TBD"
+                    event = clean
+
+                events.append({
+                    "time": time,
+                    "event": event
+                })
+
+            elif not theme:
+                theme = line
+
+            else:
+                description_lines.append(line)
+
+        parsed[day] = {
+            "theme": theme,
+            "dress_code": dress_code,
+            "description": " ".join(description_lines),
+            "events": events
+        }
+
+    return parsed
 
 
 if "itinerary" not in st.session_state:
@@ -275,35 +386,60 @@ if st.session_state.show_password:
 
 
 if st.session_state.editing:
-    st.markdown("## ✨ Upload Changes")
+    st.markdown("## ✨ Upload Itinerary Changes")
 
     st.write(
-        "Upload a PDF with the itinerary changes instead of manually editing each day, time, and event."
+        "Upload a PDF with Friday, Saturday, and Sunday plans. "
+        "The app will read it and update the itinerary automatically."
     )
 
     uploaded_pdf = st.file_uploader(
-        "Upload PDF file",
+        "Upload updated itinerary PDF",
         type=["pdf"]
     )
 
-    change_notes = st.text_area(
-        "Optional notes",
-        placeholder="Example: Please update Saturday plans using this PDF."
+    st.info(
+        "Best PDF format: Day, Theme, Dress Code, Description, then events like: "
+        "- 7:00 PM - Dinner"
     )
 
     if uploaded_pdf:
-        st.success(f"Uploaded: {uploaded_pdf.name}")
+        preview = parse_pdf_itinerary(uploaded_pdf)
 
-        st.download_button(
-            label="Download uploaded PDF",
-            data=uploaded_pdf,
-            file_name=uploaded_pdf.name,
-            mime="application/pdf"
-        )
+        st.markdown("### Preview Changes")
 
-    if st.button("Submit Changes"):
-        if not uploaded_pdf:
-            st.warning("Please upload a PDF first.")
-        else:
-            st.session_state.message = "PDF uploaded successfully 🩷"
+        if not preview:
+            st.warning("I could not read the PDF format. Please check the file and try again.")
+
+        for day, details in preview.items():
+            st.markdown(f"#### {day}")
+            st.write(f"**Theme:** {details['theme']}")
+            st.write(f"**Dress Code:** {details['dress_code']}")
+            st.write(details["description"])
+
+            if details["events"]:
+                for event in details["events"]:
+                    st.write(f"- {event['time']} — {event['event']}")
+            else:
+                st.write("_No events found for this day._")
+
+        if st.button("Save PDF Changes"):
+            for day, details in preview.items():
+                supabase.table("day_details").update({
+                    "theme": details["theme"],
+                    "dress_code": details["dress_code"],
+                    "description": details["description"]
+                }).eq("day", day).execute()
+
+                supabase.table("events").delete().eq("day", day).execute()
+
+                for event in details["events"]:
+                    supabase.table("events").insert({
+                        "day": day,
+                        "time": event["time"],
+                        "event": event["event"]
+                    }).execute()
+
+            refresh_itinerary()
+            st.session_state.message = "PDF changes saved successfully 🩷"
             st.rerun()
