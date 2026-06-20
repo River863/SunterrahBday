@@ -1,78 +1,309 @@
+import base64
+from datetime import datetime
 import streamlit as st
-from docxtpl import DocxTemplate
-from io import BytesIO
+import streamlit.components.v1 as components
+from supabase import create_client
 
 st.set_page_config(
-    page_title="Document Formatter",
-    page_icon="📄",
+    page_title="Sunterrah's 30th Birthday",
+    page_icon="🎀",
     layout="centered"
 )
 
-st.title("📄 Document Formatter")
-st.write("Upload a Word template, add your instructions, and download a formatted document.")
+IMAGE_FILE = "secret_puppy.png.gif"
 
-if "unlocked" not in st.session_state:
-    st.session_state.unlocked = False
+supabase = create_client(
+    st.secrets["SUPABASE_URL"],
+    st.secrets["SUPABASE_KEY"]
+)
 
-if not st.session_state.unlocked:
-    code = st.text_input("Enter admin code", type="password")
+
+def gif_to_html(path, width=150):
+    with open(path, "rb") as file:
+        encoded = base64.b64encode(file.read()).decode()
+    return f"""
+    <div style="text-align:center;">
+        <img src="data:image/gif;base64,{encoded}" width="{width}" style="animation:bounce 1.5s infinite; cursor:pointer;">
+    </div>
+    """
+
+
+st.markdown("""
+<style>
+.stApp {
+    background: linear-gradient(180deg, #fff5f8, #ffe4ec) !important;
+    color: #4a1230 !important;
+}
+.title {
+    text-align: center;
+    font-size: 2.7rem;
+    font-weight: bold;
+    background: linear-gradient(90deg, #ff1493, #ff69b4, #ffb6d9, #ff1493);
+    background-size: 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3s infinite linear;
+}
+.subtitle {
+    text-align: center;
+    color: #c2185b !important;
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+}
+.day-title {
+    color: #ff1493 !important;
+    text-shadow: 0 0 8px rgba(255, 105, 180, 0.45);
+    font-weight: 800;
+}
+.day-card {
+    background: rgba(255,255,255,0.98);
+    padding: 22px;
+    border-radius: 24px;
+    margin-bottom: 18px;
+    border: 2px solid #ff9ecb;
+    box-shadow: 0 8px 22px rgba(255, 20, 147, 0.18);
+}
+.theme-box {
+    background: #fff0f7;
+    padding: 14px;
+    border-radius: 16px;
+    margin-bottom: 14px;
+    border: 1px dashed #ff69b4;
+}
+.theme {
+    font-weight: bold;
+    color: #ff1493 !important;
+    font-size: 1.15rem;
+}
+.dress-code {
+    font-weight: bold;
+    color: #c2185b !important;
+}
+.description {
+    color: #4a1230 !important;
+    line-height: 1.5;
+}
+.event-card {
+    background: #fff7fb;
+    padding: 14px;
+    border-radius: 16px;
+    margin: 10px 0;
+    border-left: 6px solid #ff1493;
+}
+.time {
+    font-weight: bold;
+    color: #ff1493 !important;
+}
+.event {
+    font-size: 1.05rem;
+    color: #4a1230 !important;
+}
+.glitter {
+    position: fixed;
+    top: -10px;
+    animation: fall linear infinite;
+    font-size: 18px;
+    z-index: 9999;
+    pointer-events: none;
+}
+@keyframes fall {
+    to { transform: translateY(110vh) rotate(360deg); }
+}
+@keyframes bounce {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-12px); }
+    100% { transform: translateY(0px); }
+}
+@keyframes shimmer {
+    0% { background-position: 0%; }
+    100% { background-position: 300%; }
+}
+</style>
+
+<div class="glitter" style="left:5%; animation-duration:6s;">✨</div>
+<div class="glitter" style="left:15%; animation-duration:8s;">💖</div>
+<div class="glitter" style="left:25%; animation-duration:7s;">✨</div>
+<div class="glitter" style="left:40%; animation-duration:9s;">🎀</div>
+<div class="glitter" style="left:55%; animation-duration:6.5s;">✨</div>
+<div class="glitter" style="left:70%; animation-duration:8.5s;">💗</div>
+<div class="glitter" style="left:85%; animation-duration:7.5s;">✨</div>
+<div class="glitter" style="left:95%; animation-duration:9.5s;">💖</div>
+""", unsafe_allow_html=True)
+
+
+def time_sort_value(item):
+    try:
+        return datetime.strptime(item["time"], "%I:%M %p")
+    except:
+        return datetime.max
+
+
+def load_itinerary():
+    details_response = supabase.table("day_details").select("*").execute()
+    events_response = supabase.table("events").select("*").execute()
+
+    itinerary = {}
+
+    for row in details_response.data:
+        itinerary[row["day"]] = {
+            "theme": row["theme"],
+            "dress_code": row["dress_code"],
+            "description": row["description"],
+            "events": []
+        }
+
+    for row in events_response.data:
+        day = row["day"]
+        if day in itinerary:
+            itinerary[day]["events"].append({
+                "id": row["id"],
+                "time": row["time"],
+                "event": row["event"]
+            })
+
+    for day in itinerary:
+        itinerary[day]["events"] = sorted(
+            itinerary[day]["events"],
+            key=time_sort_value
+        )
+
+    return itinerary
+
+
+def refresh_itinerary():
+    st.session_state.itinerary = load_itinerary()
+
+
+if "itinerary" not in st.session_state:
+    refresh_itinerary()
+
+if "editing" not in st.session_state:
+    st.session_state.editing = False
+
+if "show_password" not in st.session_state:
+    st.session_state.show_password = False
+
+if "message" not in st.session_state:
+    st.session_state.message = None
+
+
+st.markdown(
+    "<h1 class='title'>🎀 Sunterrah's 30th Birthday 🎀</h1>",
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    "<p class='subtitle'>A cute birthday weekend itinerary 🩷✨</p>",
+    unsafe_allow_html=True
+)
+
+if st.session_state.message:
+    st.success(st.session_state.message)
+    st.session_state.message = None
+
+components.html(
+    """
+    <div style="text-align:center; margin: 10px 0 25px 0;">
+        <button onclick="window.parent.print()" style="
+            background:#ff1493;
+            color:white;
+            border:none;
+            padding:12px 22px;
+            border-radius:999px;
+            font-weight:bold;
+            font-size:16px;
+            cursor:pointer;
+            box-shadow:0 6px 14px rgba(255,20,147,0.25);
+        ">
+            🖨️ Print / Save as PDF
+        </button>
+    </div>
+    """,
+    height=70
+)
+
+day_order = ["Friday", "Saturday", "Sunday"]
+
+for day in day_order:
+    if day not in st.session_state.itinerary:
+        continue
+
+    details = st.session_state.itinerary[day]
+
+    st.markdown(
+        f"""
+        <div class='day-card'>
+            <h2 class='day-title'>🩷 {day}</h2>
+            <div class='theme-box'>
+                <div class='theme'>{details['theme']}</div>
+                <div class='dress-code'>Dress Code: {details['dress_code']}</div>
+                <p class='description'>{details['description']}</p>
+            </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    for item in details["events"]:
+        st.markdown(
+            f"""
+            <div class='event-card'>
+                <div class='time'>{item['time']}</div>
+                <div class='event'>{item['event']}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+st.markdown(gif_to_html(IMAGE_FILE, width=150), unsafe_allow_html=True)
+
+if st.button("🐾"):
+    st.session_state.show_password = True
+
+if st.session_state.show_password:
+    password = st.text_input("Enter passcode", type="password")
 
     if st.button("Unlock"):
-        if code == st.secrets["edit_password"]:
-            st.session_state.unlocked = True
+        if password == st.secrets["edit_password"]:
+            st.session_state.editing = True
+            st.session_state.message = "Unlocked 🩷"
             st.rerun()
         else:
-            st.error("Incorrect code")
+            st.error("Incorrect passcode 🐾")
 
-else:
-    st.success("Unlocked")
 
-    prompt = st.text_area(
-        "What do you want the document to say?",
-        height=200,
-        placeholder="Type the content or instructions here..."
+if st.session_state.editing:
+    st.markdown("## ✨ Upload Changes")
+
+    st.write(
+        "Upload a PDF with the itinerary changes instead of manually editing each day, time, and event."
     )
 
-    uploaded_file = st.file_uploader(
-        "Upload supporting file",
-        type=["txt", "docx", "pdf"]
+    uploaded_pdf = st.file_uploader(
+        "Upload PDF file",
+        type=["pdf"]
     )
 
-    template_file = st.file_uploader(
-        "Upload your Word template",
-        type=["docx"]
+    change_notes = st.text_area(
+        "Optional notes",
+        placeholder="Example: Please update Saturday plans using this PDF."
     )
 
-    if uploaded_file:
-        st.info(f"Uploaded: {uploaded_file.name}")
+    if uploaded_pdf:
+        st.success(f"Uploaded: {uploaded_pdf.name}")
 
-    if st.button("Generate Document"):
-        if not prompt:
-            st.warning("Please type your instructions or content.")
-        elif not template_file:
-            st.warning("Please upload your Word template.")
+        st.download_button(
+            label="Download uploaded PDF",
+            data=uploaded_pdf,
+            file_name=uploaded_pdf.name,
+            mime="application/pdf"
+        )
+
+    if st.button("Submit Changes"):
+        if not uploaded_pdf:
+            st.warning("Please upload a PDF first.")
         else:
-            doc = DocxTemplate(template_file)
-
-            context = {
-                "title": "Formatted Document",
-                "body": prompt,
-                "uploaded_filename": uploaded_file.name if uploaded_file else ""
-            }
-
-            doc.render(context)
-
-            output = BytesIO()
-            doc.save(output)
-            output.seek(0)
-
-            st.download_button(
-                label="Download Formatted Document",
-                data=output,
-                file_name="formatted_document.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
-
-    if st.button("Lock App"):
-        st.session_state.unlocked = False
-        st.rerun()
+            st.session_state.message = "PDF uploaded successfully 🩷"
+            st.rerun()
